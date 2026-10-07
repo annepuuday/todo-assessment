@@ -22,7 +22,7 @@ export default function Sidebar({
         <div className="sidebar-header">
           <div className="brand">
             <div className="brand-logo">
-              <Icon name="check" size={18} />
+              <Icon name="logo" size={20} />
             </div>
             <div>
               <strong>TodoFlow</strong>

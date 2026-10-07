@@ -12,7 +12,7 @@ export default function LoginPage({ notice }) {
     <div className="login-page">
       <div className="login-card">
         <div className="brand-logo brand-logo-lg">
-          <Icon name="check" size={30} />
+          <Icon name="logo" size={32} />
         </div>
 
         <p className="login-brand">TodoFlow</p>
