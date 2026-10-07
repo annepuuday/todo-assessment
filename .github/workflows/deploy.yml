@@ -1,0 +1,44 @@
+name: Deploy Todo Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 3.110.228.166 >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@3.110.228.166 << 'EOF'
+            cd ~/todo-assessment
+
+            git pull origin main
+
+            # Build backend services
+            cd middleware
+            cargo build
+
+            cd ../downstream
+            cargo build
+
+            # Build frontend
+            cd ../frontend
+            npm install
+            npm run build
+
+            echo "Deployment completed successfully"
+          EOF
+
