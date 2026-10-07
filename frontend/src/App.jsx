@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API = "http://3.110.228.166:4000";
+const API = "http://13.200.102.40:4000";
 
 function decodeToken(token) {
   try {

@@ -6,23 +6,56 @@ on:
       - main
 
 jobs:
-  deploy:
+  ci:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Backend
+        run: cargo build --release --manifest-path backend/Cargo.toml
+
+      - name: Build Downstream
+        run: cargo build --release --manifest-path downstream/Cargo.toml
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+
+  deploy:
+    name: Deploy to EC2
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 3.110.228.166 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 13.200.102.40 >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/id_ed25519 ubuntu@3.110.228.166 << 'EOF'
+          ssh -i ~/.ssh/id_ed25519 ubuntu@13.200.102.40 << 'EOF'
             set -e
 
             cd ~/todo-assessment
@@ -30,18 +63,38 @@ jobs:
             echo "Pulling latest code..."
             git pull origin main
 
-            echo "Building Downstream..."
-            cd downstream
-            cargo build
+            echo "Building Backend..."
+            cd backend
+            cargo build --release
 
-            echo "Building Middleware..."
-            cd ../middleware
-            cargo build
+            echo "Building Downstream..."
+            cd ../downstream
+            cargo build --release
 
             echo "Building Frontend..."
             cd ../frontend
-            npm install
+            npm ci
             npm run build
 
-            echo "Deployment completed successfully."
+            echo "Restarting Downstream..."
+            sudo systemctl restart todo-downstream
+
+            echo "Restarting Backend..."
+            sudo systemctl restart todo-backend
+
+            echo "Restarting Frontend..."
+            sudo systemctl restart todo-frontend
+
+            echo "Checking services..."
+            sudo systemctl is-active --quiet todo-downstream
+            sudo systemctl is-active --quiet todo-backend
+            sudo systemctl is-active --quiet todo-frontend
+
+            echo "Checking Backend health..."
+            curl -f http://127.0.0.1:4000/health
+
+            echo "Checking Downstream health..."
+            curl -f http://127.0.0.1:5000/health
+
+            echo "Deployment successful!"
           EOF
