@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{header::AUTHORIZATION, HeaderMap, StatusCode},
     response::{IntoResponse, Redirect},
-    routing::{delete, get, post, put},
+    routing::{get, put},
     Router,
 };
 use dotenvy::dotenv;
