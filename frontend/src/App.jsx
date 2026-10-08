@@ -280,7 +280,7 @@ function App() {
               <div className="avatar avatar-soft">{username[0].toUpperCase()}</div>
               <div className="topbar-user-info">
                 <strong>{username}</strong>
-                <span>Signed in with GitHub</span>
+                <span>Login in with GitHub</span>
               </div>
             </div>
           </div>
